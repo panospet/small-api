@@ -17,9 +17,18 @@ else create redis + mysql
 migrate -path ./migrations -database "mysql://bestprice:bestprice@tcp(localhost:3305)/bestprice" up
 ```
 
+
 ```
 mysql -h 127.0.0.1 -ubestprice -P 3305 -pbestprice bestprice
 ```
+
+populate database
+```
+cd cmd/populate
+go run main.go
+```
+or import mysqldump (todo)
+
 
 to run api:
 ```
