@@ -1,0 +1,17 @@
+version: '3.3'
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - "./.mysql-data/db:/var/lib/mysql"
+    ports:
+      - 3305:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bestprice
+      MYSQL_USER: bestprice
+      MYSQL_PASSWORD: bestprice
+  redis:
+    image: "redis:alpine"
+    ports:
+      - 6380:6379

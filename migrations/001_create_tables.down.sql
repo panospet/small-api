@@ -1,0 +1,4 @@
+ALTER TABLE product DROP FOREIGN KEY fk_product_category_id;
+DROP TABLE IF EXISTS product;
+DROP TABLE IF EXISTS category;
+DROP TABLE IF EXISTS user;
