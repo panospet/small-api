@@ -76,7 +76,7 @@ func (a *AppDb) DeleteProduct(id string) error {
 	return nil
 }
 
-func (a *AppDb) GetAllCategories(offset int, limit int, orderBy string, asc bool) ([]model.Category, error) {
+func (a *AppDb) GetAllCategories() ([]model.Category, error) {
 	var categories []model.Category
 	q := "SELECT * FROM category"
 	rows, err := a.Conn.Queryx(q)

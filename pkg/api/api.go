@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 
@@ -13,10 +15,10 @@ import (
 )
 
 type Api struct {
-	Db *services.AppDb
+	Db services.DbService
 }
 
-func NewApi(db *services.AppDb) *Api {
+func NewApi(db services.DbService) *Api {
 	return &Api{
 		Db: db,
 	}
@@ -48,43 +50,181 @@ func (a *Api) Run() {
 }
 
 func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, []model.Product{})
+	products, err := a.Db.GetAllProducts()
+	if err != nil {
+		log.Println("error while getting products", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting products")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, products)
 }
 
 func (a *Api) getProduct(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, model.Product{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	product, err := a.Db.GetProduct(id)
+	if err != nil {
+		log.Println("error while getting product", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting product")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, product)
 }
 
 func (a *Api) createProduct(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusCreated, Response{Message: "product created"})
+	var product model.Product
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	if err := json.Unmarshal(raw, &product); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+
+	id, err := a.Db.AddProduct(product)
+	if err != nil {
+		log.Println("product could not be added", err)
+		respondWithError(w, http.StatusInternalServerError, "Product could not be added")
+		return
+	}
+	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Product with id %s was created", id)})
 }
 
 func (a *Api) updateProduct(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusCreated, Response{Message: "product updated"})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	product, err := a.Db.GetProduct(id)
+	if err != nil {
+		log.Println("error while getting product", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting product")
+		return
+	}
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	if err := json.Unmarshal(raw, &product); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	err = a.Db.UpdateProduct(product)
+	if err != nil {
+		log.Println("error while updating product", err)
+		respondWithError(w, http.StatusInternalServerError, "Product could not be updated")
+		return
+	}
+	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Product with id %s was updated", id)})
 }
 
 func (a *Api) deleteProduct(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, Response{Message: "product deleted"})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	err := a.Db.DeleteProduct(id)
+	if err != nil {
+		log.Println("error while deleting product", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while deleting product")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, Response{Message: fmt.Sprintf("Product with id %s was deleted", id)})
 }
 
 func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, []model.Category{})
+	categories, err := a.Db.GetAllCategories()
+	if err != nil {
+		log.Println("error while getting categories", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting categories")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, categories)
 }
 
 func (a *Api) getCategory(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, model.Category{})
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Println("error with category id", err)
+		respondWithError(w, http.StatusBadRequest, "Bad category id")
+		return
+	}
+	category, err := a.Db.GetCategory(id)
+	if err != nil {
+		log.Println("error while getting category", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting category")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, category)
 }
 
 func (a *Api) createCategory(w http.ResponseWriter, r *http.Request) {
+	var category model.Category
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	if err := json.Unmarshal(raw, &category); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	err = a.Db.AddCategory(category)
+	if err != nil {
+		log.Println("product could not be added", err)
+		respondWithError(w, http.StatusInternalServerError, "Category could not be added")
+		return
+	}
 	respondWithJSON(w, http.StatusCreated, Response{Message: "Category was created successfully"})
 }
 
 func (a *Api) updateCategory(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusCreated, Response{Message: "category updated"})
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Println("error with category id", err)
+		respondWithError(w, http.StatusBadRequest, "Bad category id")
+		return
+	}
+	category, err := a.Db.GetCategory(id)
+	if err != nil {
+		log.Println("error while getting category", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while getting category")
+		return
+	}
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	if err := json.Unmarshal(raw, &category); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid POST request")
+		return
+	}
+	err = a.Db.UpdateCategory(category)
+	if err != nil {
+		log.Println("error while updating category", err)
+		respondWithError(w, http.StatusInternalServerError, "Category could not be updated")
+		return
+	}
+	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Category with id %d was updated", id)})
 }
 
 func (a *Api) deleteCategory(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, Response{Message: "category deleted"})
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Println("error with category id", err)
+		respondWithError(w, http.StatusBadRequest, "Bad category id")
+		return
+	}
+	err = a.Db.DeleteCategory(id)
+	if err != nil {
+		log.Println("error while deleting product", err)
+		respondWithError(w, http.StatusInternalServerError, "Error while deleting category")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, Response{Message: fmt.Sprintf("Category with id %d was deleted", id)})
 }
 
 func (a *Api) health(w http.ResponseWriter, r *http.Request) {
