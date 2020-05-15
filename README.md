@@ -1,6 +1,12 @@
 # small-api
 A small API sample using Goland, MySql and Redis
 
+```
+git clone git@github.com:panospet/small-api.git
+cd small-api
+go mod tidy
+```
+
 if machine has docker-compose then
 ```
 docker-compose up -d
@@ -13,4 +19,10 @@ migrate -path ./migrations -database "mysql://bestprice:bestprice@tcp(localhost:
 
 ```
 mysql -h 127.0.0.1 -ubestprice -P 3305 -pbestprice bestprice
+```
+
+to run api:
+```
+cd cmd/api
+go run main.go
 ```
