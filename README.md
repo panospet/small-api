@@ -35,3 +35,9 @@ to run api:
 cd cmd/api
 go run main.go
 ```
+
+todos:
+- pagination testing
+- populate redis and db with workers + goroutines
+- order by category position also
+- 
