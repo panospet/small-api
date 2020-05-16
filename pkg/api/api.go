@@ -50,7 +50,7 @@ func (a *Api) Run() {
 }
 
 func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := a.Db.GetAllProducts()
+	products, err := a.Db.GetAllProducts(0, 0, "id", true)
 	if err != nil {
 		log.Println("error while getting products", err)
 		respondWithError(w, http.StatusInternalServerError, "Error while getting products")
@@ -132,7 +132,7 @@ func (a *Api) deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := a.Db.GetAllCategories()
+	categories, err := a.Db.GetAllCategories(0, 0, "id", true)
 	if err != nil {
 		log.Println("error while getting categories", err)
 		respondWithError(w, http.StatusInternalServerError, "Error while getting categories")

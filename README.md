@@ -38,6 +38,7 @@ go run main.go
 
 todos:
 - pagination testing
-- populate redis and db with workers + goroutines
+- populate redis and db with workers + goroutines (add getallCategoriesToChan, getAllProductsTochan to dbservice)
 - order by category position also
-- 
+- users and authentication
+- validation and 400

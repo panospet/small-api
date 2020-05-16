@@ -1,9 +1,13 @@
 package services
 
 import (
+	"fmt"
+	"regexp"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/panospet/small-api/pkg/model"
 )
 
@@ -19,10 +23,24 @@ func NewDb(mysqlPath string) (*AppDb, error) {
 	return &AppDb{Conn: db}, nil
 }
 
-func (a *AppDb) GetAllProducts() ([]model.Product, error) {
-	// todo order by category position
+var valid = regexp.MustCompile("^[A-Za-z0-9_]+$")
+
+func (a *AppDb) GetAllProducts(offset int, limit int, orderBy string, asc bool) ([]model.Product, error) {
 	var products []model.Product
 	q := "SELECT * FROM product"
+	if len(orderBy) > 0 {
+		if !valid.MatchString(orderBy) {
+			return products, &SqlInjectionAttemptError{}
+		}
+		sort := "desc"
+		if asc == true {
+			sort = "asc"
+		}
+		q += fmt.Sprintf(` ORDER BY %s %s`, orderBy, sort)
+	}
+	if limit != 0 {
+		q += fmt.Sprintf(` LIMIT %d OFFSET %d `, limit, offset)
+	}
 	rows, err := a.Conn.Queryx(q)
 	if err != nil {
 		return products, err
@@ -76,9 +94,22 @@ func (a *AppDb) DeleteProduct(id string) error {
 	return nil
 }
 
-func (a *AppDb) GetAllCategories() ([]model.Category, error) {
+func (a *AppDb) GetAllCategories(offset int, limit int, orderBy string, asc bool) ([]model.Category, error) {
 	var categories []model.Category
 	q := "SELECT * FROM category"
+	if len(orderBy) > 0 {
+		if !valid.MatchString(orderBy) {
+			return categories, &SqlInjectionAttemptError{}
+		}
+		sort := "desc"
+		if asc == true {
+			sort = "asc"
+		}
+		q += fmt.Sprintf(` ORDER BY %s %s`, orderBy, sort)
+	}
+	if limit != 0 {
+		q += fmt.Sprintf(` LIMIT %d OFFSET %d `, limit, offset)
+	}
 	rows, err := a.Conn.Queryx(q)
 	if err != nil {
 		return categories, err
@@ -128,4 +159,10 @@ func (a *AppDb) DeleteCategory(id int) error {
 		return err
 	}
 	return nil
+}
+
+type SqlInjectionAttemptError struct{}
+
+func (s *SqlInjectionAttemptError) Error() string {
+	return "value contains malicious chars for sql injection"
 }
