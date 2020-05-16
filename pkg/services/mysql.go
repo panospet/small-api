@@ -28,27 +28,31 @@ var valid = regexp.MustCompile("^[A-Za-z0-9_]+$")
 
 func (a *AppDb) GetProducts(offset int, limit int, orderBy string, asc bool) ([]model.Product, error) {
 	var products []model.Product
-	q := "SELECT p.* FROM product p"
+	q := `SELECT
+      product.*,
+      cat.id "cat.id",
+      cat.title "cat.title",
+      cat.pos "cat.pos",
+      cat.image_url "cat.image_url",
+      cat.created_at "cat.created_at",
+      cat.updated_at "cat.updated_at"
+    FROM
+      product JOIN category cat ON product.category_id = cat.id`
+	sort := "desc"
+	if asc == true {
+		sort = "asc"
+	}
 	if orderBy == "position" {
-		sort := "desc"
-		if asc == true {
-			sort = "asc"
-		}
-		q += fmt.Sprintf(` JOIN category c on p.category_id=c.id ORDER BY c.pos %s`, sort)
+		q += fmt.Sprintf(` ORDER BY cat.pos %s`, sort)
 	} else if len(orderBy) > 0 {
 		if !valid.MatchString(orderBy) {
 			return products, &SqlInjectionAttemptError{}
-		}
-		sort := "desc"
-		if asc == true {
-			sort = "asc"
 		}
 		q += fmt.Sprintf(` ORDER BY %s %s`, orderBy, sort)
 	}
 	if limit != 0 {
 		q += fmt.Sprintf(` LIMIT %d OFFSET %d `, limit, offset)
 	}
-	fmt.Println(q)
 	rows, err := a.Conn.Queryx(q)
 	if err != nil {
 		return products, err
@@ -65,8 +69,18 @@ func (a *AppDb) GetProducts(offset int, limit int, orderBy string, asc bool) ([]
 }
 
 func (a *AppDb) GetProduct(id string) (model.Product, error) {
+	q := `SELECT
+      product.*,
+      cat.id "cat.id",
+      cat.title "cat.title",
+      cat.pos "cat.pos",
+      cat.image_url "cat.image_url",
+      cat.created_at "cat.created_at",
+      cat.updated_at "cat.updated_at"
+    FROM
+      product JOIN category cat ON product.category_id = cat.id WHERE product.id=?`
 	var product model.Product
-	err := a.Conn.QueryRowx("SELECT * FROM product WHERE id=?", id).StructScan(&product)
+	err := a.Conn.QueryRowx(q, id).StructScan(&product)
 	if err != nil {
 		return model.Product{}, err
 	}

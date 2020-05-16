@@ -48,7 +48,16 @@ func (s *Suite) TestGetAllProducts() {
 	rows := sqlmock.NewRows([]string{"id", "category_id", "title", "image_url", "price", "description", "created_at", "updated_at"}).AddRow(
 		uuid.New().String(), 2, "test title", "http://www.bestprice.gr/test.png", 100, "test description", time.Now(), time.Now()).AddRow(
 		uuid.New().String(), 5, "test title 2", "http://www.bestprice.gr/test222.png", 200, "test description 2", time.Now(), time.Now())
-	s.dbMock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM product")).WillReturnRows(rows)
+	s.dbMock.ExpectQuery(regexp.QuoteMeta(`SELECT
+      product.*,
+      cat.id "cat.id",
+      cat.title "cat.title",
+      cat.pos "cat.pos",
+      cat.image_url "cat.image_url",
+      cat.created_at "cat.created_at",
+      cat.updated_at "cat.updated_at"
+    FROM
+      product JOIN category cat ON product.category_id = cat.id`)).WillReturnRows(rows)
 	res, err := s.appDb.GetProducts(0, 0, "id", true)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), 2, len(res))
@@ -61,7 +70,16 @@ func (s *Suite) TestGetAllProducts() {
 func (s *Suite) TestGetProduct() {
 	rows := sqlmock.NewRows([]string{"id", "category_id", "title", "image_url", "price", "description", "created_at", "updated_at"}).AddRow(
 		uuid.New().String(), 2, "test title", "http://www.bestprice.gr/test.png", 100, "test description", time.Now(), time.Now())
-	s.dbMock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM product WHERE id=?")).WithArgs("asdf").WillReturnRows(rows)
+	s.dbMock.ExpectQuery(regexp.QuoteMeta(`SELECT
+      product.*,
+      cat.id "cat.id",
+      cat.title "cat.title",
+      cat.pos "cat.pos",
+      cat.image_url "cat.image_url",
+      cat.created_at "cat.created_at",
+      cat.updated_at "cat.updated_at"
+    FROM
+      product JOIN category cat ON product.category_id = cat.id WHERE product.id=?`)).WithArgs("asdf").WillReturnRows(rows)
 	res, err := s.appDb.GetProduct("asdf")
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "test description", res.Description)
