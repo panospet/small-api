@@ -49,7 +49,7 @@ func (s *Suite) TestGetAllProducts() {
 		uuid.New().String(), 2, "test title", "http://www.bestprice.gr/test.png", 100, "test description", time.Now(), time.Now()).AddRow(
 		uuid.New().String(), 5, "test title 2", "http://www.bestprice.gr/test222.png", 200, "test description 2", time.Now(), time.Now())
 	s.dbMock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM product")).WillReturnRows(rows)
-	res, err := s.appDb.GetAllProducts(0, 0, "id", true)
+	res, err := s.appDb.GetProducts(0, 0, "id", true)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), 2, len(res))
 	assert.Equal(s.T(), "test description", res[0].Description)
@@ -107,7 +107,7 @@ func (s *Suite) TestGetAllCategories() {
 		1, "cat1", 2, "http://www.bestprice.gr/cat1.png", time.Now(), time.Now()).AddRow(
 		2, "cat2", 6, "http://www.bestprice.gr/cat2.png", time.Now(), time.Now())
 	s.dbMock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM category")).WillReturnRows(rows)
-	res, err := s.appDb.GetAllCategories(0, 0, "id", true)
+	res, err := s.appDb.GetCategories(0, 0, "id", true)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), 2, len(res))
 	assert.Equal(s.T(), "cat1", res[0].Title)

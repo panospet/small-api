@@ -26,10 +26,16 @@ func NewDb(mysqlPath string) (*AppDb, error) {
 
 var valid = regexp.MustCompile("^[A-Za-z0-9_]+$")
 
-func (a *AppDb) GetAllProducts(offset int, limit int, orderBy string, asc bool) ([]model.Product, error) {
+func (a *AppDb) GetProducts(offset int, limit int, orderBy string, asc bool) ([]model.Product, error) {
 	var products []model.Product
-	q := "SELECT * FROM product"
-	if len(orderBy) > 0 {
+	q := "SELECT p.* FROM product p"
+	if orderBy == "position" {
+		sort := "desc"
+		if asc == true {
+			sort = "asc"
+		}
+		q += fmt.Sprintf(` JOIN category c on p.category_id=c.id ORDER BY c.pos %s`, sort)
+	} else if len(orderBy) > 0 {
 		if !valid.MatchString(orderBy) {
 			return products, &SqlInjectionAttemptError{}
 		}
@@ -42,6 +48,7 @@ func (a *AppDb) GetAllProducts(offset int, limit int, orderBy string, asc bool) 
 	if limit != 0 {
 		q += fmt.Sprintf(` LIMIT %d OFFSET %d `, limit, offset)
 	}
+	fmt.Println(q)
 	rows, err := a.Conn.Queryx(q)
 	if err != nil {
 		return products, err
@@ -95,7 +102,7 @@ func (a *AppDb) DeleteProduct(id string) error {
 	return nil
 }
 
-func (a *AppDb) GetAllCategories(offset int, limit int, orderBy string, asc bool) ([]model.Category, error) {
+func (a *AppDb) GetCategories(offset int, limit int, orderBy string, asc bool) ([]model.Category, error) {
 	var categories []model.Category
 	q := "SELECT * FROM category"
 	if len(orderBy) > 0 {

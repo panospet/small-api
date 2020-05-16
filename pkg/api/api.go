@@ -47,14 +47,14 @@ func (a *Api) Run() {
 	router.HandleFunc("/", Authenticator(a.health, a))
 
 	// products
-	router.HandleFunc("/v1/products", a.getAllProducts).Methods("GET")
+	router.HandleFunc("/v1/products", a.getListProducts).Methods("GET")
 	router.HandleFunc("/v1/products/{id}", a.getProduct).Methods("GET")
 	router.HandleFunc("/v1/products", Authenticator(a.createProduct, a)).Methods("POST")
 	router.HandleFunc("/v1/products/{id}", Authenticator(a.updateProduct, a)).Methods("PATCH")
 	router.HandleFunc("/v1/products/{id}", Authenticator(a.deleteProduct, a)).Methods("DELETE")
 
 	// categories
-	router.HandleFunc("/v1/categories", a.getAllCategories).Methods("GET")
+	router.HandleFunc("/v1/categories", a.getListCategories).Methods("GET")
 	router.HandleFunc("/v1/categories/{id}", a.getCategory).Methods("GET")
 	router.HandleFunc("/v1/categories", Authenticator(a.createCategory, a)).Methods("POST")
 	router.HandleFunc("/v1/categories/{id}", Authenticator(a.updateCategory, a)).Methods("PATCH")
@@ -67,7 +67,7 @@ func (a *Api) Run() {
 	}
 }
 
-func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
+func (a *Api) getListProducts(w http.ResponseWriter, r *http.Request) {
 	var foundInCache bool
 	if cachedRes, err := a.Cache.GetApiRequest(r.URL.String()); err == nil && cachedRes != "" {
 		fmt.Println("found response for", r.URL, "in cache")
@@ -102,7 +102,7 @@ func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Error in pagination values")
 		return
 	}
-	products, err := a.Db.GetAllProducts(p.offset, p.limit, orderBy, asc)
+	products, err := a.Db.GetProducts(p.offset, p.limit, orderBy, asc)
 	total := len(products)
 	if err != nil {
 		log.Println("error while getting products", err)
@@ -206,7 +206,7 @@ func (a *Api) deleteProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, Response{Message: fmt.Sprintf("Product with id %s was deleted", id)})
 }
 
-func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
+func (a *Api) getListCategories(w http.ResponseWriter, r *http.Request) {
 	var foundInCache bool
 	if cachedRes, err := a.Cache.GetApiRequest(r.URL.String()); err == nil && cachedRes != "" {
 		fmt.Println("found response for", r.URL, "in cache")
@@ -244,7 +244,7 @@ func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
 	if orderBy == "position" {
 		orderBy = "pos"
 	}
-	categories, err := a.Db.GetAllCategories(p.offset, p.limit, orderBy, asc)
+	categories, err := a.Db.GetCategories(p.offset, p.limit, orderBy, asc)
 	total := len(categories)
 	if err != nil {
 		if _, ok := err.(*services.SqlInjectionAttemptError); ok {

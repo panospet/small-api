@@ -40,5 +40,6 @@ todos:
 - order by category position also
 - validation and 400
 - DDL
-- fix pagination testing
+- fix broken unit tests
+- unit test API
 - make readme a proper readme
