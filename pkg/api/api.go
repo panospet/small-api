@@ -25,7 +25,7 @@ func NewApi(db services.DbService) *Api {
 	}
 }
 
-func Authenticator(next http.HandlerFunc, app *Api) http.HandlerFunc {
+func Authenticator(nextHandler http.HandlerFunc, app *Api) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authenticated := false
 		if username, password, ok := r.BasicAuth(); ok {
@@ -35,8 +35,7 @@ func Authenticator(next http.HandlerFunc, app *Api) http.HandlerFunc {
 			respondWithError(w, http.StatusUnauthorized, "Authorization failed")
 			return
 		}
-		fmt.Println("authenticated.")
-		next(w, r)
+		nextHandler(w, r)
 	}
 }
 

@@ -42,3 +42,4 @@ todos:
 - order by category position also
 - users and authentication
 - validation and 400
+- DDL
