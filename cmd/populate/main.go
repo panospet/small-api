@@ -22,7 +22,7 @@ func main() {
 	}
 	redis, err := cache.NewRedisCache(conf.RedisPath)
 	// todo workers and amount via args
-	populateDb(db, 10, 200)
+	populateDb(db, 10, 20000)
 	populateRedis(db, redis, 10)
 }
 

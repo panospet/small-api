@@ -68,12 +68,22 @@ func (a *Api) Run() {
 }
 
 func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
+	var foundInCache bool
+	if cachedRes, err := a.Cache.GetApiRequest(r.URL.String()); err == nil && cachedRes != "" {
+		fmt.Println("found response for", r.URL, "in cache")
+		foundInCache = true
+		respondCachedWithJson(w, http.StatusOK, []byte(cachedRes))
+		return
+	} else if err != nil {
+		log.Println(fmt.Sprintf("error getting response for request '%s' from cache: %s", r.URL.String(), err))
+	}
+	foundInCache = false
 	orderByValue := r.FormValue("orderBy")
 	var asc bool
 	var orderBy string
 	if orderByValue != "" {
 		parts := strings.Split(orderByValue, ":")
-		// todo if len(parts) > 2 then throw error, if len(parts)==1 then it has to be only orderBy
+		// todo if len(parts) > 2 error, if len(parts)==1 then it has to be only orderBy
 		orderBy = parts[0]
 		if len(parts) > 1 {
 			if parts[1] == "asc" {
@@ -108,6 +118,9 @@ func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
 		end = total
 	}
 	setPaginationHeaders(w, r, p, total)
+	if !foundInCache {
+		go a.cacheResponse(r.URL.String(), products[p.start:end])
+	}
 	respondWithJSON(w, http.StatusOK, products[p.start:end])
 }
 
@@ -148,6 +161,7 @@ func (a *Api) createProduct(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Product could not be added")
 		return
 	}
+	go a.cacheSetProduct(product)
 	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Product with id %s was created", id)})
 }
 
@@ -175,6 +189,7 @@ func (a *Api) updateProduct(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Product could not be updated")
 		return
 	}
+	go a.cacheSetProduct(product)
 	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Product with id %s was updated", id)})
 }
 
@@ -187,10 +202,21 @@ func (a *Api) deleteProduct(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Error while deleting product")
 		return
 	}
+	go a.cacheDelProduct(id)
 	respondWithJSON(w, http.StatusOK, Response{Message: fmt.Sprintf("Product with id %s was deleted", id)})
 }
 
 func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
+	var foundInCache bool
+	if cachedRes, err := a.Cache.GetApiRequest(r.URL.String()); err == nil && cachedRes != "" {
+		fmt.Println("found response for", r.URL, "in cache")
+		foundInCache = true
+		respondCachedWithJson(w, http.StatusOK, []byte(cachedRes))
+		return
+	} else if err != nil {
+		log.Println(fmt.Sprintf("error getting response for request '%s' from cache: %s", r.URL.String(), err))
+	}
+	foundInCache = false
 	orderByValue := r.FormValue("orderBy")
 	var asc bool
 	var orderBy string
@@ -238,6 +264,9 @@ func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
 		end = total
 	}
 	setPaginationHeaders(w, r, p, total)
+	if !foundInCache {
+		go a.cacheResponse(r.URL.String(), categories[p.start:end])
+	}
 	respondWithJSON(w, http.StatusOK, categories[p.start:end])
 }
 
@@ -282,6 +311,7 @@ func (a *Api) createCategory(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Category could not be added")
 		return
 	}
+	go a.cacheSetCategory(category)
 	respondWithJSON(w, http.StatusCreated, Response{Message: "Category was created successfully"})
 }
 
@@ -314,6 +344,7 @@ func (a *Api) updateCategory(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Category could not be updated")
 		return
 	}
+	go a.cacheSetCategory(category)
 	respondWithJSON(w, http.StatusCreated, Response{Message: fmt.Sprintf("Category with id %d was updated", id)})
 }
 
@@ -331,6 +362,7 @@ func (a *Api) deleteCategory(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Error while deleting category")
 		return
 	}
+	go a.cacheDelCategory(id)
 	respondWithJSON(w, http.StatusOK, Response{Message: fmt.Sprintf("Category with id %d was deleted", id)})
 }
 
@@ -346,6 +378,53 @@ func (a *Api) health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusTeapot)
 	w.Write(data)
+}
+
+func (a *Api) cacheSetProduct(product model.Product) {
+	proB, err := json.Marshal(product)
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to mashal product with id %s", product.Id))
+	}
+	err = a.Cache.SetProduct(product.Id, string(proB))
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to write product with id %s to cache", product.Id))
+	}
+}
+
+func (a *Api) cacheDelProduct(id string) {
+	err := a.Cache.DeleteProduct(id)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (a *Api) cacheSetCategory(category model.Category) {
+	catB, err := json.Marshal(category)
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to mashal category with id %d", category.Id))
+	}
+	err = a.Cache.SetCategory(fmt.Sprintf("%d", category.Id), string(catB))
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to write category with id %d to cache", category.Id))
+	}
+}
+
+func (a *Api) cacheDelCategory(id int) {
+	err := a.Cache.DeleteCategory(fmt.Sprintf("%d", id))
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (a *Api) cacheResponse(url string, response interface{}) {
+	serialized, err := json.Marshal(response)
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to mashal serialized response for request '%s'", url))
+	}
+	err = a.Cache.SetApiRequest(url, string(serialized))
+	if err != nil {
+		log.Println(fmt.Sprintf("unable to write serialized response for request '%s' to cache", url))
+	}
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

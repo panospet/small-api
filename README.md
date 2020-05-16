@@ -37,8 +37,8 @@ go run main.go
 ```
 
 todos:
-- populate redis and db with workers + goroutines (add getallCategoriesToChan, getAllProductsTochan to dbservice)
 - order by category position also
 - validation and 400
 - DDL
 - fix pagination testing
+- make readme a proper readme

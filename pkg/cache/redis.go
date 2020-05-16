@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -117,8 +118,24 @@ func (c *RedisCacher) GetAllCategories() (map[string]string, error) {
 }
 
 func (c *RedisCacher) SetApiRequest(path string, serializedResponse string) error {
-	return errors.New("method not implemented")
+	if !c.connected {
+		return errors.New("redis client is currently not connected")
+	}
+	fmt.Println("Redis: setting for request", path)
+	if err := c.Client.Set(path, serializedResponse, 15*time.Minute).Err(); err != nil {
+		return errors.New(fmt.Sprintf("error in redis hset: %s", err.Error()))
+	}
+	return nil
 }
+
 func (c *RedisCacher) GetApiRequest(path string) (string, error) {
-	return "", errors.New("method not implemented")
+	if !c.connected {
+		return "", errors.New("redis client is currently not connected")
+	}
+	fmt.Println("Redis: getting for request", path)
+	hget := c.Client.Get(path)
+	if hget.Err() != nil {
+		return "", errors.New(fmt.Sprintf("error getting request with path %s from redis: %s", path, hget.Err()))
+	}
+	return hget.Val(), nil
 }
