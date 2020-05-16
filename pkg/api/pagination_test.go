@@ -59,6 +59,19 @@ func TestPagination4(t *testing.T) {
 	assert.Equal(t, 180, pag.end)
 }
 
+func TestPagination5(t *testing.T) {
+	r, _ := http.NewRequest("GET", "http://myapi.gr/v1/products?offset=7&page=1&limit=100&perPage=1", nil)
+	pag, err := getPaginationFromRequest(r)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 100, pag.limit)
+	assert.Equal(t, 1, pag.perPage)
+	assert.Equal(t, 7, pag.offset)
+	assert.Equal(t, 1, pag.page)
+	assert.Equal(t, 7, pag.start)
+	assert.Equal(t, 8, pag.end)
+}
+
 func TestCalculatePaginationHeaders(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://myapi.gr/v1/products?perPage=20&offset=100&page=4&limit=1000", nil)
 	pag, err := getPaginationFromRequest(r)

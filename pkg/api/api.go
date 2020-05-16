@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -50,13 +51,47 @@ func (a *Api) Run() {
 }
 
 func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := a.Db.GetAllProducts(0, 0, "id", true)
+	orderByValue := r.FormValue("orderBy")
+	var asc bool
+	var orderBy string
+	if orderByValue != "" {
+		parts := strings.Split(orderByValue, ":")
+		// todo if len(parts) > 2 then throw error, if len(parts)==1 then it has to be only orderBy
+		orderBy = parts[0]
+		if len(parts) > 1 {
+			if parts[1] == "asc" {
+				asc = true
+			} else if parts[1] == "desc" {
+				asc = false
+			} else {
+				respondWithError(w, http.StatusBadRequest, "Bad order by value. Example \"orderBy=price:asc\"")
+				return
+			}
+		}
+	}
+	p, err := getPaginationFromRequest(r)
+	if err != nil {
+		// todo specific error for p value
+		respondWithError(w, http.StatusInternalServerError, "Error in pagination values")
+		return
+	}
+	products, err := a.Db.GetAllProducts(p.offset, p.limit, orderBy, asc)
+	total := len(products)
 	if err != nil {
 		log.Println("error while getting products", err)
 		respondWithError(w, http.StatusInternalServerError, "Error while getting products")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, products)
+	if p.start > total-1 {
+		respondWithError(w, http.StatusBadRequest, "Page does not exist")
+		return
+	}
+	end := p.end
+	if p.end > total {
+		end = total
+	}
+	setPaginationHeaders(w, r, p, total)
+	respondWithJSON(w, http.StatusOK, products[p.start:end])
 }
 
 func (a *Api) getProduct(w http.ResponseWriter, r *http.Request) {
@@ -132,13 +167,54 @@ func (a *Api) deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) getAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := a.Db.GetAllCategories(0, 0, "id", true)
+	orderByValue := r.FormValue("orderBy")
+	var asc bool
+	var orderBy string
+	if orderByValue != "" {
+		parts := strings.Split(orderByValue, ":")
+		// todo if len(parts) > 2 error, if len(parts)==1 then it has to be only orderBy
+		orderBy = parts[0]
+		if len(parts) > 1 {
+			if parts[1] == "asc" {
+				asc = true
+			} else if parts[1] == "desc" {
+				asc = false
+			} else {
+				respondWithError(w, http.StatusBadRequest, "Bad order by value. Example \"orderBy=title:asc\"")
+				return
+			}
+		}
+	}
+	p, err := getPaginationFromRequest(r)
 	if err != nil {
+		// todo specific error for p value
+		respondWithError(w, http.StatusInternalServerError, "Error in pagination values")
+		return
+	}
+	if orderBy == "position" {
+		orderBy = "pos"
+	}
+	categories, err := a.Db.GetAllCategories(p.offset, p.limit, orderBy, asc)
+	total := len(categories)
+	if err != nil {
+		if _, ok := err.(*services.SqlInjectionAttemptError); ok {
+			respondWithError(w, http.StatusBadRequest, "Bad parameters given (I saw what you did there ;) )")
+			return
+		}
 		log.Println("error while getting categories", err)
 		respondWithError(w, http.StatusInternalServerError, "Error while getting categories")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, categories)
+	if p.start > total-1 {
+		respondWithError(w, http.StatusBadRequest, "Page does not exist")
+		return
+	}
+	end := p.end
+	if p.end > total {
+		end = total
+	}
+	setPaginationHeaders(w, r, p, total)
+	respondWithJSON(w, http.StatusOK, categories[p.start:end])
 }
 
 func (a *Api) getCategory(w http.ResponseWriter, r *http.Request) {

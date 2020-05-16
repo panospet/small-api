@@ -52,8 +52,8 @@ func getPaginationFromRequest(r *http.Request) (*Pagination, error) {
 			return &Pagination{}, err
 		}
 	}
-	start := pagination.offset + (pagination.perPage * (pagination.page - 1))
-	end := pagination.offset + (pagination.perPage * (pagination.page))
+	start := pagination.perPage * (pagination.page - 1)
+	end := pagination.perPage * (pagination.page)
 	if pagination.limit != 0 && end > pagination.limit {
 		end = pagination.limit
 	}
