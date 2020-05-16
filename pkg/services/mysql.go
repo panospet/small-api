@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/panospet/small-api/internal/passwd"
 	"github.com/panospet/small-api/pkg/model"
 )
 
@@ -159,6 +160,24 @@ func (a *AppDb) DeleteCategory(id int) error {
 		return err
 	}
 	return nil
+}
+
+func (a *AppDb) AddUser(user model.User) error {
+	q := `INSERT INTO user (username, password) VALUES (?,?);`
+	_, err := a.Conn.Exec(q, user.Username, passwd.Hash([]byte(user.Password)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *AppDb) UserExists(username string, password string) bool {
+	var user model.User
+	err := a.Conn.QueryRowx("SELECT * FROM user WHERE username=?", username).StructScan(&user)
+	if err != nil {
+		return false
+	}
+	return passwd.Authenticate(user.Password, []byte(password))
 }
 
 type SqlInjectionAttemptError struct{}

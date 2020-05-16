@@ -13,4 +13,6 @@ type DbService interface {
 	AddCategory(category model.Category) error
 	UpdateCategory(category model.Category) error
 	DeleteCategory(id int) error
+	AddUser(user model.User) error
+	UserExists(username string, password string) bool
 }

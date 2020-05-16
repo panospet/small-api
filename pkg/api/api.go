@@ -25,23 +25,38 @@ func NewApi(db services.DbService) *Api {
 	}
 }
 
+func Authenticator(next http.HandlerFunc, app *Api) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authenticated := false
+		if username, password, ok := r.BasicAuth(); ok {
+			authenticated = app.Db.UserExists(username, password)
+		}
+		if !authenticated {
+			respondWithError(w, http.StatusUnauthorized, "Authorization failed")
+			return
+		}
+		fmt.Println("authenticated.")
+		next(w, r)
+	}
+}
+
 func (a *Api) Run() {
 	router := mux.NewRouter()
-	router.HandleFunc("/", a.health)
+	router.HandleFunc("/", Authenticator(a.health, a))
 
 	// products
 	router.HandleFunc("/v1/products", a.getAllProducts).Methods("GET")
 	router.HandleFunc("/v1/products/{id}", a.getProduct).Methods("GET")
-	router.HandleFunc("/v1/products", a.createProduct).Methods("POST")
-	router.HandleFunc("/v1/products/{id}", a.updateProduct).Methods("PATCH")
-	router.HandleFunc("/v1/products/{id}", a.deleteProduct).Methods("DELETE")
+	router.HandleFunc("/v1/products", Authenticator(a.createProduct, a)).Methods("POST")
+	router.HandleFunc("/v1/products/{id}", Authenticator(a.updateProduct, a)).Methods("PATCH")
+	router.HandleFunc("/v1/products/{id}", Authenticator(a.deleteProduct, a)).Methods("DELETE")
 
 	// categories
 	router.HandleFunc("/v1/categories", a.getAllCategories).Methods("GET")
 	router.HandleFunc("/v1/categories/{id}", a.getCategory).Methods("GET")
-	router.HandleFunc("/v1/categories", a.createCategory).Methods("POST")
-	router.HandleFunc("/v1/categories/{id}", a.updateCategory).Methods("PATCH")
-	router.HandleFunc("/v1/categories/{id}", a.deleteCategory).Methods("DELETE")
+	router.HandleFunc("/v1/categories", Authenticator(a.createCategory, a)).Methods("POST")
+	router.HandleFunc("/v1/categories/{id}", Authenticator(a.updateCategory, a)).Methods("PATCH")
+	router.HandleFunc("/v1/categories/{id}", Authenticator(a.deleteCategory, a)).Methods("DELETE")
 
 	log.Println("API is starting...")
 	err := http.ListenAndServe(":8080", router)
