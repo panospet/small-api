@@ -42,8 +42,8 @@ func TestPagination3(t *testing.T) {
 	assert.Equal(t, 20, pag.perPage)
 	assert.Equal(t, 100, pag.offset)
 	assert.Equal(t, 4, pag.page)
-	assert.Equal(t, 160, pag.start)
-	assert.Equal(t, 180, pag.end)
+	assert.Equal(t, 60, pag.start)
+	assert.Equal(t, 80, pag.end)
 }
 
 func TestPagination4(t *testing.T) {
@@ -55,8 +55,8 @@ func TestPagination4(t *testing.T) {
 	assert.Equal(t, 20, pag.perPage)
 	assert.Equal(t, 100, pag.offset)
 	assert.Equal(t, 4, pag.page)
-	assert.Equal(t, 160, pag.start)
-	assert.Equal(t, 180, pag.end)
+	assert.Equal(t, 60, pag.start)
+	assert.Equal(t, 80, pag.end)
 }
 
 func TestPagination5(t *testing.T) {
@@ -68,8 +68,8 @@ func TestPagination5(t *testing.T) {
 	assert.Equal(t, 1, pag.perPage)
 	assert.Equal(t, 7, pag.offset)
 	assert.Equal(t, 1, pag.page)
-	assert.Equal(t, 7, pag.start)
-	assert.Equal(t, 8, pag.end)
+	assert.Equal(t, 0, pag.start)
+	assert.Equal(t, 1, pag.end)
 }
 
 func TestCalculatePaginationHeaders(t *testing.T) {

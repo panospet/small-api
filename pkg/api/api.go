@@ -83,7 +83,10 @@ func (a *Api) getListProducts(w http.ResponseWriter, r *http.Request) {
 	var orderBy string
 	if orderByValue != "" {
 		parts := strings.Split(orderByValue, ":")
-		// todo if len(parts) > 2 error, if len(parts)==1 then it has to be only orderBy
+		if len(parts) > 2 {
+			respondWithError(w, http.StatusBadRequest, "Bad order by value. Example \"orderBy=title:asc\"")
+			return
+		}
 		orderBy = parts[0]
 		if len(parts) > 1 {
 			if parts[1] == "asc" {
@@ -98,8 +101,7 @@ func (a *Api) getListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := getPaginationFromRequest(r)
 	if err != nil {
-		// todo specific error for p value
-		respondWithError(w, http.StatusInternalServerError, "Error in pagination values")
+		respondWithError(w, http.StatusBadRequest, "Error in pagination values")
 		return
 	}
 	products, err := a.Db.GetProducts(p.offset, p.limit, orderBy, asc)
@@ -222,7 +224,10 @@ func (a *Api) getListCategories(w http.ResponseWriter, r *http.Request) {
 	var orderBy string
 	if orderByValue != "" {
 		parts := strings.Split(orderByValue, ":")
-		// todo if len(parts) > 2 error, if len(parts)==1 then it has to be only orderBy
+		if len(parts) > 2 {
+			respondWithError(w, http.StatusBadRequest, "Bad order by value. Example \"orderBy=title:asc\"")
+			return
+		}
 		orderBy = parts[0]
 		if len(parts) > 1 {
 			if parts[1] == "asc" {
@@ -237,8 +242,7 @@ func (a *Api) getListCategories(w http.ResponseWriter, r *http.Request) {
 	}
 	p, err := getPaginationFromRequest(r)
 	if err != nil {
-		// todo specific error for p value
-		respondWithError(w, http.StatusInternalServerError, "Error in pagination values")
+		respondWithError(w, http.StatusBadRequest, "Error in pagination values")
 		return
 	}
 	if orderBy == "position" {
