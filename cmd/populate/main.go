@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -15,15 +16,22 @@ import (
 )
 
 func main() {
+	var workers int
+	var amount int
+
+	flag.IntVar(&workers, "workers", 10, "number of workers")
+	flag.IntVar(&amount, "amount", 1000, "total amount of products to add")
+	flag.Parse()
+
+
 	conf := config.NewConfig()
 	db, err := services.NewDb(conf.MysqlPath)
 	if err != nil {
 		panic(err)
 	}
 	redis, err := cache.NewRedisCache(conf.RedisPath)
-	// todo workers and amount via args
-	populateDb(db, 10, 20000)
-	populateRedis(db, redis, 10)
+	populateDb(db, workers, amount)
+	populateRedis(db, redis, workers)
 }
 
 func populateRedis(db *services.AppDb, cacher *cache.RedisCacher, workers int) {
