@@ -5,6 +5,7 @@ import (
 
 	"github.com/panospet/small-api/internal/config"
 	"github.com/panospet/small-api/pkg/api"
+	"github.com/panospet/small-api/pkg/cache"
 	"github.com/panospet/small-api/pkg/services"
 )
 
@@ -14,6 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error while initializing db", err)
 	}
-	bpApi := api.NewApi(db)
+	redis, err := cache.NewRedisCache(conf.RedisPath)
+	bpApi := api.NewApi(db, redis)
 	bpApi.Run()
 }

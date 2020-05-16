@@ -185,3 +185,43 @@ type SqlInjectionAttemptError struct{}
 func (s *SqlInjectionAttemptError) Error() string {
 	return "value contains malicious chars for sql injection"
 }
+
+func (a *AppDb) AllProductsToChan(prodC chan model.Product) chan error {
+	errC := make(chan error)
+	defer close(prodC)
+	defer close(errC)
+	q := "SELECT * FROM product"
+	rows, err := a.Conn.Queryx(q)
+	if err != nil {
+		errC <- err
+	}
+	for rows.Next() {
+		var p model.Product
+		err = rows.StructScan(&p)
+		if err != nil {
+			errC <- err
+		}
+		prodC <- p
+	}
+	return errC
+}
+
+func (a *AppDb) AllCategoriesToChan(catC chan model.Category) chan error {
+	errC := make(chan error)
+	defer close(catC)
+	defer close(errC)
+	q := "SELECT * FROM category"
+	rows, err := a.Conn.Queryx(q)
+	if err != nil {
+		errC <- err
+	}
+	for rows.Next() {
+		var c model.Category
+		err = rows.StructScan(&c)
+		if err != nil {
+			errC <- err
+		}
+		catC <- c
+	}
+	return errC
+}

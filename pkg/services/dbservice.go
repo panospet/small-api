@@ -15,4 +15,6 @@ type DbService interface {
 	DeleteCategory(id int) error
 	AddUser(user model.User) error
 	UserExists(username string, password string) bool
+	AllCategoriesToChan(catC chan model.Category) chan error
+	AllProductsToChan(prodC chan model.Product) chan error
 }

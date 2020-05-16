@@ -11,17 +11,20 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/panospet/small-api/pkg/cache"
 	"github.com/panospet/small-api/pkg/model"
 	"github.com/panospet/small-api/pkg/services"
 )
 
 type Api struct {
-	Db services.DbService
+	Db    services.DbService
+	Cache cache.Cacher
 }
 
-func NewApi(db services.DbService) *Api {
+func NewApi(db services.DbService, cache cache.Cacher) *Api {
 	return &Api{
-		Db: db,
+		Db:    db,
+		Cache: cache,
 	}
 }
 
@@ -111,6 +114,13 @@ func (a *Api) getAllProducts(w http.ResponseWriter, r *http.Request) {
 func (a *Api) getProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+	if cacheRes, err := a.Cache.GetProduct(id); err == nil && cacheRes != "" {
+		fmt.Println("got product", id, "from cache")
+		respondCachedWithJson(w, http.StatusOK, []byte(cacheRes))
+		return
+	} else if err != nil {
+		log.Println("error getting from cache product with id", id, err)
+	}
 	product, err := a.Db.GetProduct(id)
 	if err != nil {
 		log.Println("error while getting product", err)
@@ -239,6 +249,13 @@ func (a *Api) getCategory(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Bad category id")
 		return
 	}
+	if cacheRes, err := a.Cache.GetCategory(vars["id"]); err == nil && cacheRes != "" {
+		fmt.Println("got category", id, "from cache")
+		respondCachedWithJson(w, http.StatusOK, []byte(cacheRes))
+		return
+	} else if err != nil {
+		log.Println("error getting from cache category with id", id, err)
+	}
 	category, err := a.Db.GetCategory(id)
 	if err != nil {
 		log.Println("error while getting category", err)
@@ -333,6 +350,12 @@ func (a *Api) health(w http.ResponseWriter, r *http.Request) {
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+func respondCachedWithJson(w http.ResponseWriter, code int, payload []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(payload)
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
