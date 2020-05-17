@@ -84,6 +84,15 @@ cd cmd/user-add
 go run main.go -username {username} -password {password}
 # example: go run main.go -username admin -password admin
 ```
+Passwords are stored encrypted in the database.
+
+### Tests
+To see if everything works, we can run the project unit tests. There are currently unit tests for API, pagination, and
+database functionality. The command below runs all of them at once:
+```
+go test -v ./...
+```
+If all tests are green, it means we are ready to go.
 
 ## Run API
 ### Environment variables for MySql and Redis
@@ -95,13 +104,7 @@ REDIS_PATH="redis://{host}:{port}/1"
 # example: MYSQL_PATH="bestprice:bestprice@(localhost:3305)/bestprice?parseTime=true"
 # example: REDIS_PATH="redis://localhost:6380/1"
 ```
-### Tests
-To see if everything works, we can run the project unit tests. There are currently unit tests for API, pagination, and
-database functionality. The command below runs all of them at once:
-```
-go test -v ./...
-```
-If all tests are green, it means we are ready to go.
+
 
 ### Finally, let's start the API! 
 ```
@@ -120,6 +123,11 @@ curl -XGET "http://localhost:8080/"
 }
 ```
 And this is our main check that our API is up and running!
+
+#### Authentication
+All POST, PATCH, DELETE requests need basic authentication. Please use the username/password of the user you created
+in the previous steps. 
+
 ### Categories requests
 #### Get Categories
 ```
@@ -142,6 +150,11 @@ curl -XGET "http://localhost:8080/v1/products"
 curl -XGET "http://localhost:8080/v1/products/{product_uuid}"
 ```
 #### Create Product
+```
+curl -XPOST -u admin:admin 'http://localhost:8080/v1/products' -H 'Content-Type: application/json' \
+-d '{"category_id":12, "title":"my test product", "image_url":"http:\/\/www.bestprice.gr/test.png", "price":10, "description":"test description"}'
+```
+If response code is 201, then the product has been created successfully.
 #### Update Product
 #### Delete Product
 
