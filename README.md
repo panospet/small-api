@@ -95,6 +95,13 @@ REDIS_PATH="redis://{host}:{port}/1"
 # example: MYSQL_PATH="bestprice:bestprice@(localhost:3305)/bestprice?parseTime=true"
 # example: REDIS_PATH="redis://localhost:6380/1"
 ```
+### Tests
+To see if everything works, we can run the project unit tests. There are currently unit tests for API, pagination, and
+database functionality. The command below runs all of them at once:
+```
+go test -v ./...
+```
+If all tests are green, it means we are ready to go.
 
 ### Finally, let's start the API! 
 ```
@@ -102,7 +109,6 @@ cd cmd/api
 MYSQL_PATH="{mysql_path}" REDIS_PATH="{redis_path}" go run main.go
 ```
 The API starts at port 8080.
-
 ### Basic requests
 #### Health check
 ```
