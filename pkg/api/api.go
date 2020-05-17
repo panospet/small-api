@@ -373,7 +373,6 @@ func (a *Api) deleteCategory(w http.ResponseWriter, r *http.Request) {
 func (a *Api) health(w http.ResponseWriter, r *http.Request) {
 	type Health struct {
 		Message string
-		Code    int
 	}
 	health := Health{
 		Message: "health good!",

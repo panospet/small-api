@@ -2,7 +2,6 @@ package services
 
 import (
 	"database/sql"
-	"io/ioutil"
 	"log"
 	"regexp"
 	"testing"
@@ -25,10 +24,6 @@ type Suite struct {
 }
 
 func (s *Suite) SetupTest() {
-	// no need to log stuff
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
-
 	mockDB, mock, err := sqlmock.New()
 	if err != nil {
 		log.Fatal("could not initialize dbMock test db class")

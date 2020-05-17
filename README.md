@@ -37,9 +37,7 @@ go run main.go
 ```
 
 todos:
-- order by category position also
 - validation and 400
 - DDL
-- fix broken unit tests
 - unit test API
 - make readme a proper readme
