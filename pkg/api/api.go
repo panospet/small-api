@@ -44,7 +44,7 @@ func Authenticator(nextHandler http.HandlerFunc, app *Api) http.HandlerFunc {
 
 func (a *Api) Run() {
 	router := mux.NewRouter()
-	router.HandleFunc("/", Authenticator(a.health, a))
+	router.HandleFunc("/", a.health)
 
 	// products
 	router.HandleFunc("/v1/products", a.getListProducts).Methods("GET")
