@@ -99,7 +99,7 @@ REDIS_PATH="redis://{host}:{port}/1"
 ### Finally, let's start the API! 
 ```
 cd cmd/api
-MYSQL_PATH="{your_mysql_path}" REDIS_PATH="{your_redis_mysql}" go run main.go
+MYSQL_PATH="{mysql_path}" REDIS_PATH="{redis_path}" go run main.go
 ```
 The API starts at port 8080.
 
