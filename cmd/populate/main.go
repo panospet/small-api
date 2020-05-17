@@ -21,11 +21,11 @@ func main() {
 
 	conf := config.NewConfig()
 
+	db, err := services.NewDb(conf.MysqlPath)
+	if err != nil {
+		panic(err)
+	}
 	if !redisOnly {
-		db, err := services.NewDb(conf.MysqlPath)
-		if err != nil {
-			panic(err)
-		}
 		fmt.Println("populating mysql...")
 		common.PopulateDb(db, workers, amount)
 	}
