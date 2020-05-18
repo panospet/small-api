@@ -77,6 +77,11 @@ example: go run main.go -workers 10 -redis-only
 After this step, our MySql has products and categories ready to work with. Additionally, Redis has two keys, `product`
 and `category`, with their IDs as keys and their JSON representation as values.
 
+#### Concerning Redis caching
+*For testing purposes, in the above steps I decided to cache all products/categories to Redis individually. This 
+practically means that, if there are millions of them, the memory consumption might increase a lot. You can read more
+at the "Caching drawbacks" section at the end of this readme file.*
+
 ### Create User
 We need to create a user who's able to perform POST, PUT, DELETE requests. To do that, simply run:
 ```
@@ -138,7 +143,15 @@ curl -XGET "http://localhost:8080/v1/categories"
 curl -XGET "http://localhost:8080/v1/categories/1"
 ```
 #### Create Category
+```
+curl -XPOST -u admin:admin 'http://localhost:8080/v1/categories' -H 'Content-Type: application/json' \
+ -d '{"title":"test category", "image_url":"http:\/\/www.bestprice.gr/test_cat.png", "position":10}'
+```
+If response code is 201, then category has been created successfully.
 #### Update Category
+```
+curl -XPATCH -u admin:admin 'http://localhost:8080/v1/categories/1' -H 'Content-Type: application/json' -d '{"title":"updated"}'
+```
 #### Delete Category
 ### Products requests
 #### Get Products
@@ -154,10 +167,15 @@ curl -XGET "http://localhost:8080/v1/products/{product_uuid}"
 curl -XPOST -u admin:admin 'http://localhost:8080/v1/products' -H 'Content-Type: application/json' \
 -d '{"category_id":12, "title":"my test product", "image_url":"http:\/\/www.bestprice.gr/test.png", "price":10, "description":"test description"}'
 ```
-If response code is 201, then the product has been created successfully.
+If response code is 201, then product has been created successfully.
 #### Update Product
 #### Delete Product
 
 ### Pagination examples
 ### Caching method explained
 
+#### Caching drawbacks
+- Currently we store ALL individual products + categories. If there are millions of them, this may lead to huge memory
+allocation. Possible solutions: smarter caching of specific requests needed, Redis eviction policy
+- Max of 15min interval between update individual requests and list requests for the same product
+- In case of too many requests, redis may overload (too many goroutines). Possible solutions: job queue, rate limit
