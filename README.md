@@ -40,6 +40,10 @@ mysql> CREATE DATABASE bestprice;
 And that's it. Next thing we need to do is to populate our MySql and Redis with data.
 
 ### Migrate and populate db
+There are two ways of migrating and populating db:
+- Migrate using go-migrate, and populate MySql and Redis using cmd command.
+- Migrate and populate MySql using `mysqldump` file, and then populate Redis using cmd command. 
+
 #### Use go migrate
 Note: [You can install go migrate from here](https://github.com/golang-migrate/migrate)
 Simply, from the parent folder of the project, run:
@@ -259,5 +263,5 @@ retrieved from cache instead of database.
 #### Caching drawbacks
 - Currently we store ALL individual products + categories. If there are millions of them, this may lead to huge memory
 allocation. Possible solutions: smarter caching of specific requests needed, Redis eviction policy
-- Max of 15min interval between update individual requests and list requests for the same product
+- Max of 15min interval between update individual requests and list requests for the same product to be up-to-date
 - In case of too many requests, redis may overload (too many goroutines). Possible solutions: job queue, rate limit
