@@ -2,7 +2,7 @@
 A small API sample using Goland, MySql and Redis
 
 ```
-git clone git@github.com:panospet/small-api.git
+git clone https://github.com/panospet/small-api.git
 ```
 ## Preparation
 ### Mysql and Redis setup
@@ -154,6 +154,12 @@ curl -XPATCH -u admin:admin 'http://localhost:8080/v1/categories/1' -H 'Content-
 ```
 If response code is 201, then category has been updated successfully.
 #### Delete Category
+```
+curl -XDELETE -u admin:admin "http://localhost:8080/v1/categories/20"
+```
+Please notice, that if there are still products in the database that use this category ID, then the request results
+to a conflict error. In other cases, a 200 response is returned.
+ 
 ### Products requests
 #### Get Products
 ```
@@ -170,10 +176,85 @@ curl -XPOST -u admin:admin 'http://localhost:8080/v1/products' -H 'Content-Type:
 ```
 If response code is 201, then product has been created successfully.
 #### Update Product
+```
+curl -XPATCH -u admin:admin 'http://localhost:8080/v1/products/059f9348-86a3-40c9-a2b0-a586f776619c' \
+ -H 'Content-Type: application/json' -d '{"price":100, "description":"updated"}'
+```
+If response code is 201, then product has been created successfully.
 #### Delete Product
+```
+curl -XDELETE -u admin:admin "http://localhost:8080/v1/products/1c8c7393-5ccd-4270-9e1e-aa6ba5c43dae"
+```
+If response code is 200, then product has been updated successfully.
 
-### Pagination examples
+### Pagination, orderBy, limit, offset examples
+There are 5 different query parameters that we can use, while performing `GET` requests for products or categories.
+- `perPage`: How many elements per page will be showed. Default value is 10. Example: `/v1/products?perPage=20`
+- `page`: The page number to show. For example, if we have 20 elements to show, and perPage value is 5, our data will 
+be spread in 4 pages. Example: `/v1/products?page=4`. Default value is 1. 
+- `orderBy`: The field based on which our elements are sorted. Its format is `field:order`. For example: 
+`/v1/products/orderBy=price:asc`. Default value is `id`. Basically products/categories can be sorted based on any field.
+Note: products can also be sorted by their category position (example: `/v1/products?orderBy=position`)
+- `limit`: Limit the results to a specific amount. Example: `/v1/products?limit=100`
+- `offset`: The amount of results at the beginning of the list that will be "ignored". Example: `/v1/categories?offset=10`,
+the first 10 categories will not be showed.
+
+Of source, all above query parameters can be combined. Example request: *Give me the 100 cheapest products, divided to
+20 products per page:* 
+```
+http://localhost:8080/v1/products?perPage=20&orderBy=price:asc&limit=100
+```
+
 ### Caching method explained
+First of all, let's start by saying that caching is always a long and difficult discussion. To find the optimal way of
+caching your data, it needs analysis of the usage of the application, where and when the majority of the requests happen,
+ use cases etc.
+ 
+The caching methods that I'm using in this project, are two:
+- individual category / product caching by ID as key
+- serialized response caching by request path as key
+
+#### Individual category / product caching by ID
+- `cmd/populate` script, apart from the database, also populates Redis with all products / categories. Key used is their 
+ID, and the value is their serialized json.
+- After each create/update/delete successful database operation in a product/category, a goroutine is fired to do the 
+same in our cache as well.
+
+`redis-cli` command and result:
+```
+127.0.0.1:6380[1]> hget category 1
+"{\"id\":1,\"title\":\"updated\",\"position\":17,\"image_url\":\"http://www.bestprice.gr/sports.png\",
+\"created_at\":\"2020-05-17T10:57:00Z\",\"updated_at\":\"2020-05-18T08:07:40Z\"}"
+```
+```
+127.0.0.1:6380[1]> hget product 855246ed-cd39-4392-9a3c-decf12c49cab
+"{\"id\":\"855246ed-cd39-4392-9a3c-decf12c49cab\",\"category_id\":6,\"title\":\"product 437\",\"image_url\":
+\"http://www.bestprice.gr/product437.png\",\"price\":0.0217202,\"description\":\"Description for product 437\",\"created_at\":\"2020-05-17T10:57:01Z\",\"updated_at\":\"2020-05-17T10:57:01Z\"}"
+
+```
+- Benefits: each individual product/category is fetched from cache every time, which makes our application faster.
+- Drawbacks: millions of data can result to memory problems. It's ok for the current mini-bestprice-version API, but
+in production, other caching methods should be followed, in case our machine is not that powerful.
+
+#### Serialized response caching by request
+- For "list" requests, we cache API request responses, based on request path as key. For example, if a user performs a GET request to
+`v1/products`, this request path is stored as key in Redis, together with the string serialized response as value. This
+key-value pair has a TTL of 15min.
+- Example: Let's say we do a GET request to `/v1/products?limit=2`. The first time, we'll have a "miss" in cache for 
+this key, so, the result will come from MySql. Right after that, a goroutine will be invoked storing the serialized
+response inside our cache. If a second request to the same path happens within 15 minutes, then the answer will be 
+retrieved from cache instead of database. 
+`redis-cli` command and result:
+```
+127.0.0.1:6380[1]> GET /v1/products?limit=2
+"[{\"id\":\"01b41f0d-bd5b-4c0a-8432-cd97bc57cc8b\",\"category_id\":1,\"title\":\"product 408\",\"image_url\":
+\"http://www.bestprice.gr/product408.png\",\"price\":32.5052,\"description\":\"Description for product 408\",
+\"created_at\":\"2020-05-17T10:57:01Z\",\"updated_at\":\"2020-05-17T10:57:01Z\"},{\"id\":
+\"0912af7c-b139-42a4-8b52-bc33e4a9d124\",\"category_id\":1,\"title\":\"product 493\",\"image_url\":
+\"http://www.bestprice.gr/product493.png\",\"price\":104.142,\"description\":\"Description for product 493\",
+\"created_at\":\"2020-05-17T10:57:01Z\",\"updated_at\":\"2020-05-17T10:57:01Z\"}]"
+
+```
 
 #### Caching drawbacks
 - Currently we store ALL individual products + categories. If there are millions of them, this may lead to huge memory
