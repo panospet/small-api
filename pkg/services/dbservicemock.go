@@ -28,12 +28,7 @@ func (s *DbServiceMock) GetProducts(offset int, limit int, orderBy string, asc b
 }
 
 func (s *DbServiceMock) GetProduct(id string) (model.Product, error) {
-	for _, p := range s.Products {
-		if p.Id == id {
-			return p, nil
-		}
-	}
-	return model.Product{}, errors.New("product not found")
+	return s.Products[0], nil
 }
 
 func (s *DbServiceMock) AddProduct(product model.Product) (string, error) {
@@ -44,13 +39,8 @@ func (s *DbServiceMock) AddProduct(product model.Product) (string, error) {
 }
 
 func (s *DbServiceMock) UpdateProduct(product model.Product) error {
-	for i, p := range s.Products {
-		if p.Id == product.Id {
-			s.Products[i] = product
-			return nil
-		}
-	}
-	return errors.New("product not found")
+	s.Products[0] = product
+	return nil
 }
 
 func (s *DbServiceMock) DeleteProduct(id string) error {
