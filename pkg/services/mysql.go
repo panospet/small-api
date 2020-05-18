@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
@@ -46,7 +46,7 @@ func (a *AppDb) GetProducts(offset int, limit int, orderBy string, asc bool) ([]
 		q += fmt.Sprintf(` ORDER BY cat.pos %s`, sort)
 	} else if len(orderBy) > 0 {
 		if !valid.MatchString(orderBy) {
-			return products, &SqlInjectionAttemptError{}
+			return products, &ErrSqlInjectionAttempt{}
 		}
 		q += fmt.Sprintf(` ORDER BY %s %s`, orderBy, sort)
 	}
@@ -118,10 +118,11 @@ func (a *AppDb) DeleteProduct(id string) error {
 
 func (a *AppDb) GetCategories(offset int, limit int, orderBy string, asc bool) ([]model.Category, error) {
 	var categories []model.Category
+	var args []interface{}
 	q := "SELECT * FROM category"
 	if len(orderBy) > 0 {
 		if !valid.MatchString(orderBy) {
-			return categories, &SqlInjectionAttemptError{}
+			return categories, &ErrSqlInjectionAttempt{}
 		}
 		sort := "desc"
 		if asc == true {
@@ -132,7 +133,7 @@ func (a *AppDb) GetCategories(offset int, limit int, orderBy string, asc bool) (
 	if limit != 0 {
 		q += fmt.Sprintf(` LIMIT %d OFFSET %d `, limit, offset)
 	}
-	rows, err := a.Conn.Queryx(q)
+	rows, err := a.Conn.Queryx(q, args...)
 	if err != nil {
 		return categories, err
 	}
@@ -178,6 +179,10 @@ func (a *AppDb) DeleteCategory(id int) error {
 	q := `DELETE FROM category WHERE id=?`
 	_, err := a.Conn.Exec(q, id)
 	if err != nil {
+		me, ok := err.(*mysql.MySQLError)
+		if ok && me.Number == 1451 {
+			return &ErrCategoryFkConflict{}
+		}
 		return err
 	}
 	return nil
@@ -201,10 +206,16 @@ func (a *AppDb) UserExists(username string, password string) bool {
 	return passwd.Authenticate(user.Password, []byte(password))
 }
 
-type SqlInjectionAttemptError struct{}
+type ErrSqlInjectionAttempt struct{}
 
-func (s *SqlInjectionAttemptError) Error() string {
+func (s *ErrSqlInjectionAttempt) Error() string {
 	return "value contains malicious chars for sql injection"
+}
+
+type ErrCategoryFkConflict struct{}
+
+func (s *ErrCategoryFkConflict) Error() string {
+	return "cannot delete category, there are products that use this category_id"
 }
 
 func (a *AppDb) AllProductsToChan(prodC chan model.Product) chan error {

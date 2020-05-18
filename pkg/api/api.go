@@ -251,7 +251,7 @@ func (a *Api) getListCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := a.Db.GetCategories(p.offset, p.limit, orderBy, asc)
 	total := len(categories)
 	if err != nil {
-		if _, ok := err.(*services.SqlInjectionAttemptError); ok {
+		if _, ok := err.(*services.ErrSqlInjectionAttempt); ok {
 			respondWithError(w, http.StatusBadRequest, "Bad parameters given (I saw what you did there ;) )")
 			return
 		}
@@ -362,7 +362,12 @@ func (a *Api) deleteCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	err = a.Db.DeleteCategory(id)
 	if err != nil {
-		log.Println("error while deleting product", err)
+		log.Println("error while deleting category", err)
+		if _, ok := err.(*services.ErrCategoryFkConflict); ok {
+			respondWithError(w, http.StatusConflict,
+				"Cannot delete category. There are still products that are using it.")
+			return
+		}
 		respondWithError(w, http.StatusInternalServerError, "Error while deleting category")
 		return
 	}

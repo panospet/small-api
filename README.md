@@ -152,6 +152,7 @@ If response code is 201, then category has been created successfully.
 ```
 curl -XPATCH -u admin:admin 'http://localhost:8080/v1/categories/1' -H 'Content-Type: application/json' -d '{"title":"updated"}'
 ```
+If response code is 201, then category has been updated successfully.
 #### Delete Category
 ### Products requests
 #### Get Products
